@@ -40,7 +40,12 @@ Both models share the same explicit scaled dot-product attention primitive. Bool
 .
 |-- data/
 |   `-- README.md
+|-- results/
+|   |-- copy_task_metrics.json
+|   |-- generated_hemingway.txt
+|   `-- gpt_training_metrics.json
 |-- scripts/
+|   |-- download_coursework_corpus.py
 |   |-- generate_text.py
 |   |-- train_character_gpt.py
 |   `-- train_copy_task.py
@@ -52,6 +57,7 @@ Both models share the same explicit scaled dot-product attention primitive. Bool
 |-- tests/
 |-- .gitignore
 |-- pyproject.toml
+|-- RESULTS.md
 `-- README.md
 ```
 
@@ -64,7 +70,7 @@ Python 3.14 is the supported runtime.
 ```bash
 py -3.14 -m venv .venv
 .venv\Scripts\python -m pip install --upgrade pip
-.venv\Scripts\python -m pip install -e ".[dev]"
+.venv\Scripts\python -m pip install -e ".[dev,reproduction]"
 ```
 
 Run the test suite:
@@ -78,14 +84,18 @@ Run the test suite:
 The copy task provides a small, self-contained check that information can flow through the encoder, cross-attention, and autoregressive decoder.
 
 ```bash
-.venv\Scripts\python scripts/train_copy_task.py --epochs 100
+.venv\Scripts\python scripts/train_copy_task.py --epochs 10000 --log-interval 100
 ```
 
-The script generates synthetic token sequences, trains with teacher forcing, and prints one greedy-decoded example. Its output is a functional demonstration, not a reported benchmark.
+The script generates synthetic token sequences, trains with teacher forcing, evaluates held-out sequences, and records one greedy-decoded example. The reported metrics are an educational verification rather than a general benchmark.
 
 ## Character-level GPT
 
-The training corpus is not included. Supply a local UTF-8 text file that you are permitted to use:
+The training corpus is not included. Reproduce the notebook's explicit download, or supply another local UTF-8 text file that you are permitted to use:
+
+```bash
+.venv\Scripts\python scripts/download_coursework_corpus.py
+```
 
 ```bash
 .venv\Scripts\python scripts/train_character_gpt.py path/to/corpus.txt
@@ -94,17 +104,16 @@ The training corpus is not included. Supply a local UTF-8 text file that you are
 The resulting checkpoint contains the model configuration, tokenizer vocabulary, weights, and training metadata. Generate text from that self-contained checkpoint with:
 
 ```bash
-.venv\Scripts\python scripts/generate_text.py checkpoints/character_gpt.pt \
-  --prompt "Once" --tokens 500 --temperature 0.9 --top-k 20
+.venv\Scripts\python scripts/generate_text.py checkpoints/character_gpt.pt --tokens 10000 --output results/generated_hemingway.txt
 ```
 
 See [`data/README.md`](data/README.md) for the data policy and reproducibility limitation.
 
-## Coursework evidence and results
+## Results
 
-The archived GPT notebook records a 693,758-parameter model and final sampled losses of 1.2677 on the training split and 1.3653 on the validation split at step 4,999. These values document the original coursework run; they have not been independently reproduced here because the original corpus source and redistribution terms could not be verified.
+Both model families were trained and evaluated on an RTX 4080 SUPER. The encoder-decoder run reached 83.96% teacher-forced token accuracy and 15.63% greedy exact-sequence accuracy on held-out synthetic sequences. The GPT reproduction reached train loss 1.2705 and validation loss 1.3689, closely matching the archived notebook's 1.2677 and 1.3653.
 
-No encoder-decoder performance result is claimed. The included copy-task script and automated tests are intended to verify implementation behavior on demand.
+See [`RESULTS.md`](RESULTS.md) for configurations, loss curves, comparisons, interpretation, and an unedited generated-text sample.
 
 ## Improvements made during consolidation
 
@@ -118,10 +127,10 @@ These are organizational, refactoring, and correctness improvements to the cours
 
 ## Limitations
 
-- The original language-model corpus is unavailable with verifiable provenance, so exact GPT reproduction is not currently possible.
+- The notebook's external corpus is downloadable and its exact file hash is recorded, but its original publisher and redistribution terms are undocumented, so it is not committed.
 - Character-level tokenization is intentionally simple and is not representative of modern subword tokenization.
 - The implementations prioritize readability and architectural transparency over training efficiency.
-- Recorded coursework losses depend on the unavailable original corpus and should not be compared directly with runs on other text.
+- Recorded losses depend on the exact externally hosted corpus and should not be compared directly with runs on other text.
 
 ## References
 

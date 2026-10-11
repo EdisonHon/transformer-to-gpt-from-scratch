@@ -17,6 +17,9 @@ dependencies = [
 dev = [
     "pytest>=8",
 ]
+reproduction = [
+    "gdown>=5",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

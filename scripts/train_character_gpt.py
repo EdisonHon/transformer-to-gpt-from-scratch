@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 from pathlib import Path
+import time
 
 import torch
 
@@ -30,7 +33,31 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--evaluation-batches", type=int, default=200)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--seed", type=int, default=1337)
+    parser.add_argument("--early-stopping-tolerance", type=int, default=1)
+    parser.add_argument("--early-stopping-min-delta", type=float, default=0.2)
+    parser.add_argument(
+        "--metrics-output",
+        type=Path,
+        default=Path("results/gpt_training_metrics.json"),
+    )
     return parser.parse_args()
+
+
+class EarlyStopping:
+    """Match the relative train/validation gap rule used in the notebook."""
+
+    def __init__(self, tolerance: int = 1, minimum_delta: float = 0.2) -> None:
+        if tolerance <= 0 or minimum_delta < 0:
+            raise ValueError("early-stopping parameters must be non-negative")
+        self.tolerance = tolerance
+        self.minimum_delta = minimum_delta
+        self.counter = 0
+
+    def should_stop(self, training_loss: float, validation_loss: float) -> bool:
+        relative_gap = (validation_loss - training_loss) / training_loss
+        if relative_gap > self.minimum_delta:
+            self.counter += 1
+        return self.counter >= self.tolerance
 
 
 @torch.no_grad()
@@ -42,7 +69,7 @@ def estimate_loss(
     batch_size: int,
     evaluation_batches: int,
     device: torch.device,
-    generator: torch.Generator,
+    generator: torch.Generator | None,
 ) -> dict[str, float]:
     """Estimate mean training and validation losses over sampled batches."""
     was_training = model.training
@@ -77,7 +104,9 @@ def main() -> None:
         raise ValueError("both data splits must be longer than block_size")
 
     torch.manual_seed(args.seed)
-    generator = torch.Generator().manual_seed(args.seed)
+    # The notebook uses PyTorch's global generator for initialization and data
+    # sampling. Keeping that sequence here makes the reproduction more faithful.
+    generator = None
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     config = GPTConfig(
         vocabulary_size=tokenizer.vocabulary_size,
@@ -87,6 +116,13 @@ def main() -> None:
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.9)
     latest_metrics: dict[str, float] = {}
+    history: list[dict[str, float | int]] = []
+    early_stopping = EarlyStopping(
+        args.early_stopping_tolerance,
+        args.early_stopping_min_delta,
+    )
+    stopped_early = False
+    started_at = time.perf_counter()
 
     model.train()
     for step in range(args.steps):
@@ -106,6 +142,21 @@ def main() -> None:
                 f"step={step:05d} train_loss={latest_metrics['train']:.4f} "
                 f"validation_loss={latest_metrics['validation']:.4f}"
             )
+            history.append(
+                {
+                    "step": step,
+                    "learning_rate": optimizer.param_groups[0]["lr"],
+                    "training_loss": latest_metrics["train"],
+                    "validation_loss": latest_metrics["validation"],
+                }
+            )
+            if early_stopping.should_stop(
+                latest_metrics["train"],
+                latest_metrics["validation"],
+            ):
+                print(f"early stopping at step {step}")
+                stopped_early = True
+                break
 
         inputs, targets = sample_language_model_batch(
             training_data,
@@ -130,7 +181,41 @@ def main() -> None:
             "final_metrics": latest_metrics,
         },
     )
+    args.metrics_output.parent.mkdir(parents=True, exist_ok=True)
+    args.metrics_output.write_text(
+        json.dumps(
+            {
+                "task": "character-level language modeling",
+                "device": str(device),
+                "torch_version": torch.__version__,
+                "seed": args.seed,
+                "corpus_filename": args.corpus.name,
+                "corpus_sha256": hashlib.sha256(args.corpus.read_bytes()).hexdigest(),
+                "corpus_characters": len(text),
+                "vocabulary_size": tokenizer.vocabulary_size,
+                "parameter_count": sum(parameter.numel() for parameter in model.parameters()),
+                "configuration": {
+                    **config.to_dict(),
+                    "batch_size": args.batch_size,
+                    "requested_steps": args.steps,
+                    "evaluation_interval": args.evaluation_interval,
+                    "evaluation_batches": args.evaluation_batches,
+                    "initial_learning_rate": args.learning_rate,
+                    "early_stopping_tolerance": args.early_stopping_tolerance,
+                    "early_stopping_min_delta": args.early_stopping_min_delta,
+                },
+                "stopped_early": stopped_early,
+                "completed_steps": history[-1]["step"] if history else 0,
+                "elapsed_seconds": time.perf_counter() - started_at,
+                "history": history,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     print(f"saved checkpoint to {args.output}")
+    print(f"saved metrics to {args.metrics_output}")
 
 
 if __name__ == "__main__":

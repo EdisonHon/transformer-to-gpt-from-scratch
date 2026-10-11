@@ -1,0 +1,97 @@
+{
+  "task": "character-level language modeling",
+  "device": "cuda",
+  "torch_version": "2.14.1+cu130",
+  "seed": 1337,
+  "corpus_filename": "hemingway.txt",
+  "corpus_sha256": "edd96c922264c2ac38e40ff25e42f9caae917d10c417463df79ff20977db2bf4",
+  "corpus_characters": 133230,
+  "vocabulary_size": 62,
+  "parameter_count": 693758,
+  "configuration": {
+    "vocabulary_size": 62,
+    "block_size": 128,
+    "model_dimension": 96,
+    "number_of_heads": 6,
+    "number_of_layers": 6,
+    "dropout": 0.2,
+    "batch_size": 64,
+    "requested_steps": 5000,
+    "evaluation_interval": 500,
+    "evaluation_batches": 200,
+    "initial_learning_rate": 0.0003,
+    "early_stopping_tolerance": 1,
+    "early_stopping_min_delta": 0.2
+  },
+  "stopped_early": false,
+  "completed_steps": 4999,
+  "elapsed_seconds": 209.8603609999991,
+  "history": [
+    {
+      "step": 0,
+      "learning_rate": 0.0003,
+      "training_loss": 4.3103124833107,
+      "validation_loss": 4.311298205852508
+    },
+    {
+      "step": 500,
+      "learning_rate": 0.00027,
+      "training_loss": 2.163059732913971,
+      "validation_loss": 2.1695221304893493
+    },
+    {
+      "step": 1000,
+      "learning_rate": 0.000243,
+      "training_loss": 1.8817464125156402,
+      "validation_loss": 1.8768198704719543
+    },
+    {
+      "step": 1500,
+      "learning_rate": 0.0002187,
+      "training_loss": 1.682134615778923,
+      "validation_loss": 1.689338750243187
+    },
+    {
+      "step": 2000,
+      "learning_rate": 0.00019683,
+      "training_loss": 1.5596273452043534,
+      "validation_loss": 1.5859883499145508
+    },
+    {
+      "step": 2500,
+      "learning_rate": 0.000177147,
+      "training_loss": 1.4774456238746643,
+      "validation_loss": 1.5155704784393311
+    },
+    {
+      "step": 3000,
+      "learning_rate": 0.0001594323,
+      "training_loss": 1.4103256446123122,
+      "validation_loss": 1.4648992252349853
+    },
+    {
+      "step": 3500,
+      "learning_rate": 0.00014348907,
+      "training_loss": 1.3675186854600907,
+      "validation_loss": 1.4310660094022751
+    },
+    {
+      "step": 4000,
+      "learning_rate": 0.000129140163,
+      "training_loss": 1.3231488233804702,
+      "validation_loss": 1.4041791510581971
+    },
+    {
+      "step": 4500,
+      "learning_rate": 0.0001162261467,
+      "training_loss": 1.2961583399772645,
+      "validation_loss": 1.3860531890392302
+    },
+    {
+      "step": 4999,
+      "learning_rate": 0.00010460353203,
+      "training_loss": 1.2704748302698134,
+      "validation_loss": 1.3689185214042663
+    }
+  ]
+}
