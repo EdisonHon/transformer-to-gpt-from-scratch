@@ -1,0 +1,30 @@
+# Local coursework controls and immutable archive
+AGENTS.md
+PROJECT_CONTEXT.md
+original/
+
+# Local datasets and generated checkpoints
+data/*
+!data/README.md
+checkpoints/
+*.pt
+*.pth
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+

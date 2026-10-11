@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "transformer-to-gpt-from-scratch"
+version = "0.1.0"
+description = "From-scratch PyTorch implementations of an encoder-decoder Transformer and a character-level GPT"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=2.3",
+    "torch>=2.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
